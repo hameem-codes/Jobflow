@@ -1,49 +1,34 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Home } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
+import { ArrowUpRight, SearchX } from "lucide-react";
+
+const mark = "/jobflow-mark.svg";
 
 export default function NotFound() {
-  const [, setLocation] = useLocation();
-
-  const handleGoHome = () => {
-    setLocation("/");
-  };
-
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-      <Card className="w-full max-w-lg mx-4 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-        <CardContent className="pt-8 pb-8 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse" />
-              <AlertCircle className="relative h-16 w-16 text-red-500" />
-            </div>
+    <div className="public-page landing-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <header className="public-nav">
+        <Link href="/" className="public-brand">
+          <img src={mark} alt="Jobflow mark" />
+          <span>jobflow</span>
+        </Link>
+      </header>
+      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px" }}>
+        <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", maxWidth: "420px", width: "100%", padding: "50px 30px" }}>
+          <div className="empty-state__icon" style={{ marginBottom: "20px" }}>
+            <SearchX size={18} />
           </div>
-
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">404</h1>
-
-          <h2 className="text-xl font-semibold text-slate-700 mb-4">
-            Page Not Found
+          <div className="eyebrow">404 Error</div>
+          <h2 style={{ fontFamily: "Fraunces, serif", fontSize: "32px", fontWeight: 600, margin: "10px 0 15px", letterSpacing: "-0.03em" }}>
+            Page not found.
           </h2>
-
-          <p className="text-slate-600 mb-8 leading-relaxed">
-            Sorry, the page you are looking for doesn't exist.
-            <br />
-            It may have been moved or deleted.
+          <p style={{ color: "#81867c", fontSize: "12px", lineHeight: 1.55, marginBottom: "30px", maxWidth: "280px" }}>
+            We couldn't find the page you were looking for. It may have been moved or the URL might be incorrect.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button
-              onClick={handleGoHome}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Go Home
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <Link href="/" className="button button--lime">
+            Return to start <ArrowUpRight size={15} />
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }

@@ -1,0 +1,23 @@
+<svg viewBox="0 0 210 180" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Document background -->
+  <rect x="50" y="30" width="110" height="120" rx="4" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Fold corner -->
+  <path d="M 160 30 L 160 50 L 140 50 Z" fill="currentColor" opacity="0.2"/>
+
+  <!-- Document lines (text) -->
+  <line x1="60" y1="55" x2="150" y2="55" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <line x1="60" y1="70" x2="150" y2="70" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <line x1="60" y1="85" x2="135" y2="85" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+
+  <!-- Pen on document -->
+  <g transform="translate(140, 100)">
+    <!-- Pen body -->
+    <path d="M -5 -10 L -3 20 Q 0 22 3 20 L 5 -10 Z" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+    <!-- Pen tip (lime accent) -->
+    <circle cx="0" cy="23" r="2" fill="var(--lime, #d9f24a)" opacity="0.8"/>
+  </g>
+
+  <!-- Bottom flourish accent line (lime) -->
+  <path d="M 70 145 Q 105 150 140 145" stroke="var(--lime, #d9f24a)" stroke-width="2" opacity="0.6"/>
+</svg>

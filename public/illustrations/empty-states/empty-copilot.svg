@@ -1,0 +1,26 @@
+<svg viewBox="0 0 210 180" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Chat bubble (left/user) -->
+  <path d="M 50 60 Q 50 50 60 50 L 100 50 Q 110 50 110 60 L 110 80 L 115 90 L 110 80 L 110 90 Q 110 100 100 100 L 60 100 Q 50 100 50 90 Z" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Chat bubble text lines (user) -->
+  <line x1="62" y1="65" x2="98" y2="65" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <line x1="62" y1="78" x2="85" y2="78" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+
+  <!-- Chat bubble (right/AI) with accent -->
+  <path d="M 100 110 Q 100 120 110 120 L 150 120 Q 160 120 160 110 L 160 135 L 155 125 L 160 135 Q 160 145 150 145 L 110 145 Q 100 145 100 135 Z" stroke="var(--lime, #d9f24a)" stroke-width="1.5" opacity="0.8"/>
+
+  <!-- Chat bubble text lines (AI) -->
+  <line x1="112" y1="125" x2="148" y2="125" stroke="var(--lime, #d9f24a)" stroke-width="1" opacity="0.6"/>
+  <line x1="112" y1="138" x2="135" y2="138" stroke="var(--lime, #d9f24a)" stroke-width="1" opacity="0.6"/>
+
+  <!-- Sparkle accent (top right) -->
+  <g transform="translate(155, 55)">
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="1.5" fill="var(--lime, #d9f24a)" opacity="0.8"/>
+    <!-- Sparkle rays -->
+    <line x1="0" y1="-6" x2="0" y2="6" stroke="var(--lime, #d9f24a)" stroke-width="1" opacity="0.7"/>
+    <line x1="-6" y1="0" x2="6" y2="0" stroke="var(--lime, #d9f24a)" stroke-width="1" opacity="0.7"/>
+    <line x1="-4" y1="-4" x2="4" y2="4" stroke="var(--lime, #d9f24a)" stroke-width="1" opacity="0.6"/>
+    <line x1="4" y1="-4" x2="-4" y2="4" stroke="var(--lime, #d9f24a)" stroke-width="1" opacity="0.6"/>
+  </g>
+</svg>

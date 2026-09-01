@@ -1,0 +1,38 @@
+<svg viewBox="0 0 210 180" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Inbox/tray body -->
+  <path d="M 50 60 L 55 40 L 155 40 L 160 60 L 50 60" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+  <rect x="50" y="60" width="110" height="70" rx="4" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Divider line -->
+  <line x1="50" y1="85" x2="160" y2="85" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+
+  <!-- Top item in inbox -->
+  <g transform="translate(60, 70)">
+    <rect width="40" height="8" rx="2" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <line x1="0" y1="12" x2="30" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.2"/>
+  </g>
+
+  <!-- Middle item -->
+  <g transform="translate(110, 70)">
+    <rect width="40" height="8" rx="2" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <line x1="0" y1="12" x2="30" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.2"/>
+  </g>
+
+  <!-- Checklist accent (cobalt) -->
+  <g transform="translate(75, 105)">
+    <!-- Checkbox 1 -->
+    <rect x="0" y="0" width="12" height="12" rx="2" stroke="var(--cobalt, #2563eb)" stroke-width="1.5" opacity="0.7"/>
+    <polyline points="2,6 5,9 10,4" stroke="var(--cobalt, #2563eb)" stroke-width="1.5" opacity="0.7" fill="none"/>
+
+    <!-- Checkbox 2 -->
+    <rect x="0" y="16" width="12" height="12" rx="2" stroke="var(--cobalt, #2563eb)" stroke-width="1.5" opacity="0.7"/>
+    <polyline points="2,22 5,25 10,20" stroke="var(--cobalt, #2563eb)" stroke-width="1.5" opacity="0.7" fill="none"/>
+  </g>
+
+  <!-- Checklist labels (faint) -->
+  <line x1="90" y1="106" x2="125" y2="106" stroke="currentColor" stroke-width="0.8" opacity="0.25"/>
+  <line x1="90" y1="122" x2="125" y2="122" stroke="currentColor" stroke-width="0.8" opacity="0.25"/>
+
+  <!-- Bottom accent -->
+  <path d="M 60 145 Q 105 150 150 145" stroke="var(--lime, #d9f24a)" stroke-width="2" opacity="0.6"/>
+</svg>

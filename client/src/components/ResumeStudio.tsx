@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { InteractiveResumeBuilder } from "./InteractiveResumeBuilder";
 
 function Bar({label,value,color="lime"}:{label:string;value:number;color?:string}){return <div className="signal-bar"><div className="signal-bar__head"><span>{label}</span><b>{value}%</b></div><div className="signal-bar__track"><span className={`signal-bar__fill ${color}`} style={{width:`${value}%`}}/></div></div>}
-function Empty({title,copy,action,onAction}:{title:string;copy:string;action?:string;onAction?:()=>void}){return <div className="empty-state"><div className="empty-state__icon"><Plus size={17}/></div><div><h3>{title}</h3><p>{copy}</p></div>{action&&<Button className="button button--ink" onClick={onAction}>{action}<ArrowUpRight size={15}/></Button>}</div>}
+function Empty({title,copy,action,onAction,illustration}:{title:string;copy:string;action?:string;onAction?:()=>void;illustration?:string}){return <div className="empty-state-container">{illustration&&<img src={illustration} alt="" aria-hidden/>}<div><h3>{title}</h3><p>{copy}</p></div>{action&&<Button className="button button--ink" onClick={onAction}>{action}<ArrowUpRight size={15}/></Button>}</div>}
 
 export function ResumeStudio({ setTab }: { setTab: (x: TabKey) => void }) {
   const c = useJobflow();
@@ -106,7 +106,7 @@ export function ResumeStudio({ setTab }: { setTab: (x: TabKey) => void }) {
               </div>
             </button>
           ))}
-          {!c.resumes.length && <Empty title="No versions yet" copy="Upload a resume to create your first version." />}
+          {!c.resumes.length && <Empty title="No versions yet" copy="Upload a resume to create your first version." illustration="/illustrations/empty-states/empty-resume.svg" />}
           
           {c.resumes.length > 0 && (
             <div className="insight">

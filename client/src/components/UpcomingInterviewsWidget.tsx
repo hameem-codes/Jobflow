@@ -68,9 +68,12 @@ export function UpcomingInterviewsWidget({ setTab, setLocation }: { setTab: (t: 
       </div>
 
       {upcoming.length === 0 ? (
-        <div style={{ marginTop: "15px", fontSize: "12px", color: "var(--muted)" }}>
-          <p>No interviews scheduled yet.</p>
-          <p style={{ marginTop: "8px", fontSize: "11px" }}>Add an interview to an application to see it here.</p>
+        <div className="empty-state-container" style={{ minHeight: "160px", padding: "20px" }}>
+          <img src="/illustrations/empty-states/empty-interviews.svg" alt="" aria-hidden style={{ width: "150px", height: "130px" }} />
+          <div>
+            <h3 style={{ fontSize: "16px" }}>No interviews scheduled</h3>
+            <p style={{ fontSize: "12px" }}>Add an interview to an application to see it here.</p>
+          </div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "15px" }}>

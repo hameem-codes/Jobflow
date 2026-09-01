@@ -9,11 +9,25 @@ import Home from "./pages/Home";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import { JobflowProvider } from "./contexts/JobflowContext";
+import { TimeOfDay, Sounds } from "@/components/upgrade";
 
 function Router() {
   return <Switch><Route path="/" component={Landing} /><Route path="/auth" component={Auth} /><Route path="/app" component={Home} /><Route path="/404" component={NotFound} /><Route path="/:rest*" component={Home} /><Route component={NotFound} /></Switch>;
 }
 
 export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><JobflowProvider><TooltipProvider><Toaster /><Router /></TooltipProvider></JobflowProvider></ThemeProvider></ErrorBoundary>;
+  return (
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="light">
+        <JobflowProvider>
+          <TooltipProvider>
+            <TimeOfDay />
+            <Sounds />
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </JobflowProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
 }

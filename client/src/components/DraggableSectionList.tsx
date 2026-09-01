@@ -101,7 +101,9 @@ export function DraggableSectionList<T extends { id: string }>({
 }: DraggableSectionListProps<T>) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      distance: 8,
+      activationConstraint: {
+        distance: 8,
+      },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,

@@ -79,7 +79,7 @@ export function CustomJobModal() {
       return;
     }
     const allSkills = skills
-      ? [...new Set([...skills.split(",").map(s => s.trim()).filter(Boolean), ...extracted])]
+      ? Array.from(new Set([...skills.split(",").map(s => s.trim()).filter(Boolean), ...extracted]))
       : extracted;
     setSkills(allSkills.join(", "));
     toast.success(`Extracted ${extracted.length} skills from description`);

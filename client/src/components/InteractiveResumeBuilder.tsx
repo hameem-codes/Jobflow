@@ -47,7 +47,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
   const [editingBullet, setEditingBullet] = useState<{ expId: string; bulletIndex: number } | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { distance: 8 }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 

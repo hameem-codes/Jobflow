@@ -3,6 +3,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
+import { spawn, type ChildProcess } from "node:child_process";
+import net from "node:net";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
@@ -203,7 +205,83 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+function vitePluginBackendServer(): Plugin {
+  let backendProc: ChildProcess | null = null;
+  return {
+    name: "vite-plugin-backend-server",
+    apply: "serve",
+    configureServer(server: ViteDevServer) {
+      const port = Number(backendPort);
+      const socket = new net.Socket();
+      socket.setTimeout(400);
+
+      let checked = false;
+      const startBackend = () => {
+        if (checked) return;
+        checked = true;
+        socket.destroy();
+        console.log(`[vite] Starting backend server on port ${port}...`);
+        const serverPath = path.resolve(PROJECT_ROOT, "server", "src", "index.ts");
+        backendProc = spawn("npx", ["tsx", serverPath], {
+          shell: true,
+          stdio: "inherit",
+          cwd: PROJECT_ROOT,
+          env: {
+            ...process.env,
+            PORT: String(port),
+          },
+        });
+
+        backendProc.on("error", (err) => {
+          console.error("[vite] Failed to spawn backend:", err);
+        });
+      };
+
+      socket.on("connect", () => {
+        if (checked) return;
+        checked = true;
+        socket.destroy();
+        console.log(`[vite] Backend is already running on port ${port}`);
+      });
+
+      socket.on("error", () => {
+        startBackend();
+      });
+
+      socket.on("timeout", () => {
+        startBackend();
+      });
+
+      socket.connect(port, "127.0.0.1");
+
+      const cleanup = () => {
+        if (backendProc && !backendProc.killed) {
+          console.log("[vite] Shutting down backend process...");
+          if (process.platform === "win32" && backendProc.pid) {
+            try {
+              spawn("taskkill", ["/pid", String(backendProc.pid), "/T", "/F"], { stdio: "ignore" });
+            } catch {}
+          } else {
+            backendProc.kill();
+          }
+        }
+      };
+
+      server.httpServer?.on("close", cleanup);
+      process.on("exit", cleanup);
+      process.on("SIGINT", cleanup);
+      process.on("SIGTERM", cleanup);
+    },
+  };
+}
+
+const backendPort = process.env.BACKEND_PORT || (process.env.PORT && process.env.PORT !== "3000" ? process.env.PORT : "5000");
+const backendTarget = process.env.BACKEND_URL || `http://127.0.0.1:${backendPort}`;
+
+const plugins = [react(), tailwindcss()];
+if (process.env.NODE_ENV !== 'test') {
+  plugins.push(vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), vitePluginBackendServer());
+}
 
 export default defineConfig({
   plugins,
@@ -224,6 +302,21 @@ export default defineConfig({
     port: 3000,
     strictPort: false, // Will find next available port if 3000 is busy
     host: true,
+    proxy: {
+      "/api": {
+        target: backendTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+      "/healthz": {
+        target: backendTarget,
+        changeOrigin: true,
+      },
+      "/readyz": {
+        target: backendTarget,
+        changeOrigin: true,
+      },
+    },
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",

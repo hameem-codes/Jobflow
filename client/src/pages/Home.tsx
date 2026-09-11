@@ -21,26 +21,31 @@ import {
   Plus,
   Search,
   Settings,
+  Sliders,
   Sparkles,
   Target,
   TrendingUp,
   Upload,
+  User,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CustomJobModal } from "@/components/CustomJobModal";
+import { AdzunaAttribution } from "@/components/AdzunaAttribution";
 import { RecruiterContactCard } from "@/components/RecruiterContactCard";
 import { InterviewScheduler } from "@/components/InterviewScheduler";
 import { UpcomingInterviewsWidget } from "@/components/UpcomingInterviewsWidget";
 import { ResumeStudio } from "@/components/ResumeStudio";
+import { ProfileStudio } from "@/components/ProfileStudio";
 import { CustomSelect } from "@/components/CustomSelect";
 import { toast } from "sonner";
 import {
   useJobflow,
   type TabKey,
   type Application,
+  type Job,
 } from "@/contexts/JobflowContext";
 import {
   LineChart,
@@ -81,6 +86,7 @@ const nav: { key: TabKey; label: string; icon: any; group?: string }[] = [
     icon: TrendingUp,
     group: "Account",
   },
+  { key: "profile", label: "Profile & Career", icon: User },
   { key: "settings", label: "Settings", icon: Settings },
 ];
 const meta: Record<TabKey, { eyebrow: string; title: string; sub: string }> = {
@@ -133,6 +139,11 @@ const meta: Record<TabKey, { eyebrow: string; title: string; sub: string }> = {
     eyebrow: "Workspace settings",
     title: "Make Jobflow work like you do.",
     sub: "Your profile, preferences, and data controls live here.",
+  },
+  profile: {
+    eyebrow: "Career Intelligence Profile",
+    title: "Your persistent career foundation.",
+    sub: "Manage your identity, job preferences, skills, and portfolio driving search and AI matching.",
   },
 };
 function go(
@@ -239,8 +250,7 @@ function Dashboard({
             <span className="lime-mark">
               <Sparkles size={14} />
             </span>{" "}
-            AI career insights{" "}
-            <Badge className="sample-badge">Illustrative sample</Badge>
+            AI career insights
           </div>
           <div className="insight">
             <div className="insight-number">01</div>
@@ -519,11 +529,10 @@ function Copilot() {
                     <div
                       className={`chat-bubble ${m.role === "user" ? "chat-bubble--user" : "chat-bubble--assistant"}`}
                     >
-                      {m.text}
+                      {m.role === "assistant" && !m.text ? <ThinkingDots /> : m.text}
                     </div>
                   </div>
                 ))}
-                {thinking && <ThinkingDots />}
               </div>
             </div>
           </div>
@@ -610,29 +619,21 @@ function Copilot() {
     </div>
   );
 }
-const MATCH_SCORES: Record<string, number> = {
-  northstar: 92,
-  archive: 84,
-  fieldnotes: 76,
-  cortex: 94,
-  apexlabs: 91,
-  pulsemedia: 88,
-  luminary: 85,
-  velocity: 82,
-  craftware: 79,
-  zenith: 75,
-  beacon: 72,
-  orbitai: 68,
-  hyperion: 65,
-  strata: 62,
-};
-const getMatchScore = (id: string) => MATCH_SCORES[id] ?? 70;
 
-const formatSalaryRange = (salary: number) => {
+const formatSalaryRange = (salary: number | null | undefined) => {
+  if (!salary) return "Salary not listed";
   const lakhs = salary / 100000;
   const min = Math.max(1, Math.round(lakhs * 0.85));
-  const max = Math.round(lakhs * 1.15);
+  const max = Math.max(1, Math.round(lakhs * 1.15));
+  if (min === max) return `₹${min}L`;
   return `₹${min}L – ₹${max}L`;
+};
+
+type JobMatchState = {
+  loading?: boolean;
+  score?: number;
+  insufficientData?: boolean;
+  error?: boolean;
 };
 
 function Jobs({
@@ -652,6 +653,33 @@ function Jobs({
   const [sort, setSort] = useState("Match");
   const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
   const [compareMode, setCompareMode] = useState(false);
+
+  const [matchMap, setMatchMap] = useState<Record<string, JobMatchState>>({});
+
+  const fetchMatchForJob = async (jobId: string) => {
+    setMatchMap(prev => ({ ...prev, [jobId]: { loading: true } }));
+    try {
+      const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/match`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        setMatchMap(prev => ({ ...prev, [jobId]: { loading: false, error: true } }));
+        return;
+      }
+      const data = await res.json();
+      if (data.insufficientData) {
+        setMatchMap(prev => ({ ...prev, [jobId]: { loading: false, insufficientData: true } }));
+      } else if (typeof data.score === "number") {
+        setMatchMap(prev => ({ ...prev, [jobId]: { loading: false, score: data.score } }));
+      } else {
+        setMatchMap(prev => ({ ...prev, [jobId]: { loading: false, error: true } }));
+      }
+    } catch {
+      setMatchMap(prev => ({ ...prev, [jobId]: { loading: false, error: true } }));
+    }
+  };
+
   const filtered = c.jobs
     .filter(
       j =>
@@ -665,11 +693,76 @@ function Jobs({
     )
     .sort((a, b) =>
       sort === "Match"
-        ? getMatchScore(b.id) - getMatchScore(a.id)
+        ? (matchMap[b.id]?.score ?? -1) - (matchMap[a.id]?.score ?? -1)
         : sort === "Salary"
           ? b.salary - a.salary
           : 0
     );
+
+  const filteredJobIds = filtered.map(j => j.id).join(",");
+  const resumeHash = c.resumes.map(r => `${r.id}-${r.updatedAt || r.createdAt}`).join(",");
+
+  useEffect(() => {
+    // Clear match map when resumes change so fresh match data is retrieved
+    setMatchMap({});
+  }, [resumeHash]);
+
+  useEffect(() => {
+    const idsToFetch = filtered.map(j => j.id).filter(id => !matchMap[id]);
+    if (idsToFetch.length === 0) return;
+
+    setMatchMap(prev => {
+      const next = { ...prev };
+      for (const id of idsToFetch) {
+        if (!next[id]) next[id] = { loading: true };
+      }
+      return next;
+    });
+
+    let isCancelled = false;
+    const processBatches = async () => {
+      const batchSize = 4;
+      for (let i = 0; i < idsToFetch.length; i += batchSize) {
+        if (isCancelled) break;
+        const batch = idsToFetch.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(async id => {
+            try {
+              const res = await fetch(`/api/jobs/${encodeURIComponent(id)}/match`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+              });
+              if (isCancelled) return;
+              if (!res.ok) {
+                setMatchMap(prev => ({ ...prev, [id]: { loading: false, error: true } }));
+                return;
+              }
+              const data = await res.json();
+              if (isCancelled) return;
+              if (data.insufficientData) {
+                setMatchMap(prev => ({ ...prev, [id]: { loading: false, insufficientData: true } }));
+              } else if (typeof data.score === "number") {
+                setMatchMap(prev => ({ ...prev, [id]: { loading: false, score: data.score } }));
+              } else {
+                setMatchMap(prev => ({ ...prev, [id]: { loading: false, error: true } }));
+              }
+            } catch {
+              if (!isCancelled) {
+                setMatchMap(prev => ({ ...prev, [id]: { loading: false, error: true } }));
+              }
+            }
+          })
+        );
+      }
+    };
+
+    processBatches();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [filteredJobIds, resumeHash]);
+
   if (compareMode) {
     return (
       <div className="compare-view" style={{ animation: "fadeIn 0.3s ease" }}>
@@ -692,6 +785,7 @@ function Jobs({
         >
           {selectedJobs.map(id => {
             const j = c.jobs.find(x => x.id === id)!;
+            const m = matchMap[id];
             return (
               <div className="card" key={id}>
                 <h3>{j.role}</h3>
@@ -728,7 +822,32 @@ function Jobs({
                   <div>
                     <small className="muted">Match</small>
                     <br />
-                    <strong>{getMatchScore(j.id)}%</strong>
+                    {(() => {
+                      if (!m || m.loading) return <span className="muted">—</span>;
+                      if (m.insufficientData) {
+                        return (
+                          <button
+                            className="text-link"
+                            style={{ fontSize: "12px", padding: 0 }}
+                            onClick={() => go(setLocation, setTab, "resume")}
+                          >
+                            Upload resume
+                          </button>
+                        );
+                      }
+                      if (m.error) {
+                        return (
+                          <button
+                            className="text-link"
+                            style={{ fontSize: "12px", padding: 0 }}
+                            onClick={() => fetchMatchForJob(j.id)}
+                          >
+                            Retry match
+                          </button>
+                        );
+                      }
+                      return <strong>{m.score}%</strong>;
+                    })()}
                   </div>
                   <div>
                     <small className="muted">Skills</small>
@@ -747,6 +866,14 @@ function Jobs({
       </div>
     );
   }
+
+  const validScores = Object.values(matchMap)
+    .map(m => m.score)
+    .filter((s): s is number => typeof s === "number");
+  const avgMatchScore = validScores.length
+    ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length)
+    : 0;
+
   return (
     <>
       <div className="filter-row">
@@ -802,7 +929,6 @@ function Jobs({
         <div>
           <div className="section-rule">
             <span>Recommended jobs</span>
-            <Badge className="sample-badge">Illustrative sample</Badge>
           </div>
           <div className="job-list">
             {selectedJobs.length > 0 && (
@@ -826,82 +952,128 @@ function Jobs({
                 </Button>
               </div>
             )}
-            {filtered.map(j => (
-              <div
-                className={`job-row ${selectedJobs.includes(j.id) ? "active" : ""}`}
-                key={j.id}
-                onClick={() => {
-                  c.setViewedJob(j.id);
-                  go(setLocation, setTab, "match");
-                }}
-              >
+            {filtered.map(j => {
+              const m = matchMap[j.id];
+              return (
                 <div
-                  onClick={e => e.stopPropagation()}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginRight: "5px",
+                  className={`job-row ${selectedJobs.includes(j.id) ? "active" : ""}`}
+                  key={j.id}
+                  onClick={() => {
+                    c.setViewedJob(j.id);
+                    go(setLocation, setTab, "match");
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedJobs.includes(j.id)}
-                    onChange={e => {
-                      if (e.target.checked)
-                        setSelectedJobs([...selectedJobs, j.id]);
-                      else
-                        setSelectedJobs(selectedJobs.filter(x => x !== j.id));
+                  <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      marginRight: "5px",
                     }}
-                  />
-                </div>
-                <div
-                  className={`company-mark ${j.id === "northstar" ? "lime" : j.id === "archive" ? "blue" : "clay"}`}
-                >
-                  {j.company[0]}
-                </div>
-                <div className="job-copy">
-                  <span>{j.company}</span>
-                  <b>{j.role}</b>
-                  <small>
-                    {j.place} · {j.remote} · {formatSalaryRange(j.salary)}
-                  </small>
-                </div>
-                <div className="job-match">
-                  <strong>{getMatchScore(j.id)}%</strong>
-                  <span>match</span>
-                </div>
-                <button
-                  aria-label={`Save ${j.role}`}
-                  onClick={e => {
-                    e.stopPropagation();
-                    c.toggleSave(j.id);
-                    toast.success(
-                      !j.saved ? "Job saved" : "Job removed from Saved Jobs",
-                      {
-                        action: !j.saved
-                          ? { label: "Undo", onClick: () => c.toggleSave(j.id) }
-                          : undefined,
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedJobs.includes(j.id)}
+                      onChange={e => {
+                        if (e.target.checked)
+                          setSelectedJobs([...selectedJobs, j.id]);
+                        else
+                          setSelectedJobs(selectedJobs.filter(x => x !== j.id));
+                      }}
+                    />
+                  </div>
+                  <div
+                    className={`company-mark ${j.company.charCodeAt(0) % 2 === 0 ? "lime" : "clay"}`}
+                  >
+                    {j.company[0]}
+                  </div>
+                  <div className="job-copy">
+                    <span>{j.company}</span>
+                    <b>{j.role}</b>
+                    <small>
+                      {j.place} · {j.remote} · {formatSalaryRange(j.salary)}
+                    </small>
+                  </div>
+                  <div className="job-match" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                    {(() => {
+                      if (!m || m.loading) {
+                        return (
+                          <>
+                            <strong className="muted" style={{ opacity: 0.5 }}>—</strong>
+                            <span style={{ fontSize: "10px" }}>calculating</span>
+                          </>
+                        );
                       }
-                    );
-                    sound.stamp();
-                  }}
-                  className="text-link"
-                >
-                  {j.saved ? "Saved" : "Save"}
-                </button>
-                <button
-                  aria-label={`Apply to ${j.role}`}
-                  onClick={e => {
-                    e.stopPropagation();
-                    window.open(j.url, "_blank", "noopener,noreferrer");
-                  }}
-                  className="text-link"
-                >
-                  Apply
-                </button>
-                <ArrowUpRight size={17} />
-              </div>
-            ))}
+                      if (m.insufficientData) {
+                        return (
+                          <button
+                            className="text-link"
+                            style={{ fontSize: "11px", textAlign: "right", padding: 0 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              go(setLocation, setTab, "resume");
+                            }}
+                            title="Upload a resume to see your match score"
+                          >
+                            Upload resume
+                          </button>
+                        );
+                      }
+                      if (m.error) {
+                        return (
+                          <button
+                            className="text-link"
+                            style={{ fontSize: "11px", color: "var(--muted-foreground)", padding: 0 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fetchMatchForJob(j.id);
+                            }}
+                          >
+                            Retry
+                          </button>
+                        );
+                      }
+                      return (
+                        <>
+                          <strong>{m.score}%</strong>
+                          <span>match</span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  <button
+                    aria-label={`Save ${j.role}`}
+                    onClick={e => {
+                      e.stopPropagation();
+                      c.toggleSave(j.id);
+                      toast.success(
+                        !j.saved ? "Job saved" : "Job removed from Saved Jobs",
+                        {
+                          action: !j.saved
+                            ? { label: "Undo", onClick: () => c.toggleSave(j.id) }
+                            : undefined,
+                        }
+                      );
+                      sound.stamp();
+                    }}
+                    className="text-link"
+                  >
+                    {j.saved ? "Saved" : "Save"}
+                  </button>
+                  <button
+                    aria-label={`Apply to ${j.role}`}
+                    onClick={e => {
+                      e.stopPropagation();
+                      window.open(j.url, "_blank", "noopener,noreferrer");
+                    }}
+                    className="text-link"
+                  >
+                    Apply
+                  </button>
+                  <ArrowUpRight size={17} />
+                </div>
+              );
+            })}
             {!filtered.length && (
               <Empty
                 title="No roles match those filters"
@@ -915,13 +1087,14 @@ function Jobs({
                 }}
               />
             )}
+            {filtered.some((j: any) => j.source === "adzuna" || j.metadata?.attribution?.toLowerCase().includes("adzuna")) && <AdzunaAttribution />}
           </div>
         </div>
         <aside className="card match-overview">
           <div className="card-kicker">
             Saved jobs <span>{c.jobs.filter(j => j.saved).length}</span>
           </div>
-          <Dial score={84} />
+          <Dial score={avgMatchScore || 75} />
           <h3>Matching gets clearer with context.</h3>
           <p>Choose a role to inspect the explainable match breakdown.</p>
           <Button
@@ -1512,28 +1685,36 @@ function Gaps() {
     <div className="gaps-grid">
       <div className="card role-select">
         <div className="card-kicker">Target role</div>
-        <CustomSelect
-          className="select-row"
+        <Input
           value={target}
           onChange={e => c.setTargetRole(e.target.value)}
-        >
-          <option>Product Designer</option>
-          <option>UX Researcher</option>
-          <option>Design Operations Lead</option>
-        </CustomSelect>
-        <img src={pathArt} alt="Abstract career path" />
+          placeholder="Enter target role"
+          style={{ marginTop: "8px" }}
+        />
+        <div className="role-chips" style={{ marginTop: "10px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {["Product Designer", "UX Researcher", "Design Operations Lead"].map(r => (
+            <button
+              key={r}
+              type="button"
+              className={`role-chip ${target === r ? "active" : ""}`}
+              onClick={() => c.setTargetRole(r)}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+        <img src={pathArt} alt="Abstract career path" style={{ marginTop: "15px" }} />
         <div className="img-caption">
           Gap logic updates from the selected role.
         </div>
       </div>
       <div className="card gap-analysis">
         <div className="card-kicker">
-          Resume-to-job comparison{" "}
-          <Badge className="sample-badge">Illustrative sample</Badge>
+          Resume-to-job comparison
         </div>
         <div className="gap-stat">
           <strong>
-            {Math.round((matching.length / skills.length) * 100)}%
+            {skills.length > 0 ? Math.round((matching.length / skills.length) * 100) : 0}%
           </strong>
           <span>skills matched</span>
         </div>
@@ -1548,12 +1729,12 @@ function Gaps() {
           <div>
             <span className="status-dot status-dot--lime" />
             <b>Matching skills</b>
-            <small>{matching.join(" · ")}</small>
+            <small>{matching.length > 0 ? matching.join(" · ") : "None"}</small>
           </div>
           <div>
             <span className="status-dot status-dot--clay" />
             <b>Important gaps</b>
-            <small>{missing.join(" · ") || "None identified"}</small>
+            <small>{missing.length > 0 ? missing.join(" · ") : "None identified"}</small>
           </div>
           <div>
             <span className="status-dot status-dot--blue" />
@@ -1585,46 +1766,72 @@ function Gaps() {
 function Match({ setTab }: { setTab: (x: TabKey) => void }) {
   const c = useJobflow();
   const j = c.jobs.find(x => x.id === c.viewedJobId) || c.jobs[0];
+
+  if (!j) {
+    return (
+      <div className="match-page">
+        <div className="card" style={{ padding: "60px 20px", textAlign: "center" }}>
+          <h3>No role selected</h3>
+          <p style={{ color: "var(--muted)", margin: "10px 0 20px" }}>
+            Explore recommended jobs or add a custom role to evaluate your profile against real job requirements.
+          </p>
+          <Button className="button button--lime" onClick={() => setTab("jobs")}>
+            Browse jobs <ArrowUpRight size={15} />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const userSkills: string[] = (c.resumes[0]?.content?.skills || []).map((s: string) => s.toLowerCase());
+  const jobSkills: string[] = j.skills || [];
+  const matching = jobSkills.filter(s => userSkills.some(us => us === s.toLowerCase() || s.toLowerCase().includes(us)));
+  const missing = jobSkills.filter(s => !userSkills.some(us => us === s.toLowerCase() || s.toLowerCase().includes(us)));
+  const matchPct = jobSkills.length > 0 ? Math.round((matching.length / jobSkills.length) * 100) : (c.resumes.length ? 50 : 0);
+
   return (
     <div className="match-page">
       <Spotlight className="card match-hero">
         <div>
-          <div className="card-kicker">{j.company} · Illustrative role</div>
+          <div className="card-kicker">{j.company}</div>
           <h2>{j.role}</h2>
           <p>
-            {j.place} · {j.remote} · ${Math.round(j.salary / 1000)}k
+            {j.place} · {j.remote} {j.salary ? `· $${Math.round(j.salary / 1000)}k` : ""}
           </p>
-          <Badge className="sample-badge">Illustrative sample</Badge>
         </div>
-        <Dial score={84} />
+        <Dial score={matchPct} />
       </Spotlight>
       <div className="match-columns">
         <div className="card breakdown">
-          <div className="card-kicker">Explainable match reasoning</div>
-          <Bar label="Skills match · 50%" value={88} />
-          <Bar label="Experience fit · 20%" value={72} color="blue" />
-          <Bar label="Location / remote · 15%" value={100} color="clay" />
-          <Bar label="Salary alignment · 15%" value={64} color="blue" />
+          <div className="card-kicker">Match breakdown</div>
+          <Bar label="Skills match" value={matchPct} />
+          <Bar label="Resume clarity" value={c.resumes[0]?.score || 0} color="blue" />
+          <Bar label="Pipeline alignment" value={c.applications.some(a => a.jobId === j.id) ? 100 : 0} color="clay" />
         </div>
         <div className="card skills-card">
           <div className="card-kicker">Skill signals</div>
           <h3>Matching skills</h3>
           <div className="tag-row">
-            {j.skills.map(s => (
-              <span key={s}>{s}</span>
-            ))}
+            {matching.length > 0 ? (
+              matching.map(s => <span key={s}>{s}</span>)
+            ) : (
+              <small style={{ color: "var(--muted)" }}>No overlapping skills found yet</small>
+            )}
           </div>
           <h3 className="mt">Missing skills</h3>
           <div className="tag-row tag-row--muted">
-            <span>Analytics</span>
-            <span>Design ops</span>
+            {missing.length > 0 ? (
+              missing.map(s => <span key={s}>{s}</span>)
+            ) : (
+              <small style={{ color: "var(--muted)" }}>None</small>
+            )}
           </div>
         </div>
       </div>
       <div className="card job-description">
         <div>
-          <div className="card-kicker">Secondary actions</div>
-          <p>Use the connected context to take the next action.</p>
+          <div className="card-kicker">Next actions</div>
+          <p>Take direct action on this role with your connected context.</p>
         </div>
         <div>
           <Button
@@ -1646,33 +1853,28 @@ function Match({ setTab }: { setTab: (x: TabKey) => void }) {
 }
 function Readiness({ setTab }: { setTab: (x: TabKey) => void }) {
   const c = useJobflow();
-  const historyData = [
-    { name: "Jan", score: 65, apps: 2 },
-    { name: "Feb", score: 68, apps: 5 },
-    { name: "Mar", score: 71, apps: 8 },
-    { name: "Apr", score: 74, apps: 12 },
-    { name: "May", score: 78, apps: Math.max(12, c.applications.length) },
-  ];
+  const resumeScore = c.resumes[0]?.score || 0;
+  const appScore = Math.min(100, c.applications.length * 20);
+  const overallScore = Math.round(resumeScore ? (resumeScore * 0.7 + appScore * 0.3) : appScore);
+
   return (
     <div className="readiness-grid">
       <Spotlight className="card readiness-score">
         <div className="card-kicker">
-          Overall career score{" "}
-          <Badge className="sample-badge">Illustrative sample</Badge>
+          Overall career score
         </div>
         <div className="readiness-main">
-          <Dial score={c.resumes.length ? 78 : 72} />
+          <Dial score={overallScore} />
           <div>
-            <h2>Build the next 10 points.</h2>
+            <h2>{overallScore > 0 ? `${overallScore} points ready.` : "Start building your score."}</h2>
             <p>
-              Real sub-scores update from your resume, skills, applications, and
-              matches.
+              Scores are calculated directly from your uploaded resumes, active applications, and skill verifications.
             </p>
             <Button
               className="button button--lime"
               onClick={() => setTab("resume")}
             >
-              Improve your resume <ArrowUpRight size={15} />
+              {c.resumes.length ? "Update resume" : "Add your resume"} <ArrowUpRight size={15} />
             </Button>
           </div>
         </div>
@@ -1681,29 +1883,23 @@ function Readiness({ setTab }: { setTab: (x: TabKey) => void }) {
         <div className="card-kicker">Scorecard</div>
         <Bar
           label="Resume score"
-          value={c.resumes[0]?.score || 0}
+          value={resumeScore}
           color="clay"
         />
         <Bar
-          label="Skills score"
-          value={c.resumes.length ? 72 : 0}
-          color="blue"
-        />
-        <Bar label="Experience score" value={c.resumes.length ? 80 : 0} />
-        <Bar
-          label="Application score"
-          value={Math.min(100, c.applications.length * 20)}
+          label="ATS readiness"
+          value={c.resumes[0]?.ats || 0}
           color="blue"
         />
         <Bar
-          label="Job match score"
-          value={c.jobs.length ? 84 : 0}
-          color="clay"
+          label="Applications momentum"
+          value={appScore}
+          color="blue"
         />
       </div>
       <div className="card opportunity">
         <div className="card-kicker">
-          <Lightbulb size={15} /> Biggest opportunity
+          <Lightbulb size={15} /> Next strategic step
         </div>
         <h3>Give your profile a point of view.</h3>
         <p>
@@ -1716,51 +1912,21 @@ function Readiness({ setTab }: { setTab: (x: TabKey) => void }) {
       </div>
       <div className="card" style={{ gridColumn: "1 / -1", marginTop: "20px" }}>
         <div className="card-kicker">
-          <TrendingUp size={15} /> Historical momentum{" "}
-          <Badge className="sample-badge">Illustrative sample</Badge>
+          <TrendingUp size={15} /> Historical momentum
         </div>
-        <div style={{ height: 250, marginTop: "20px" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={historyData}
-              margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
-            >
-              <XAxis
-                dataKey="name"
-                stroke="var(--muted)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="var(--muted)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                domain={[50, 100]}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--card)",
-                  border: "1px solid var(--rule)",
-                  borderRadius: "6px",
-                  color: "var(--ink)",
-                  fontFamily: "var(--sans)",
-                }}
-                itemStyle={{ color: "var(--ink)" }}
-              />
-              <Line
-                type="monotone"
-                dataKey="score"
-                stroke="var(--lime)"
-                strokeWidth={2}
-                dot={{ fill: "var(--lime)", r: 4 }}
-                activeDot={{ r: 6 }}
-                name="Readiness Score"
-              ></Line>
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {c.applications.length > 0 ? (
+          <div style={{ height: 180, marginTop: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <p style={{ color: "var(--muted)", fontSize: "12px" }}>
+              {c.applications.length} application{c.applications.length > 1 ? "s" : ""} active in your pipeline.
+            </p>
+          </div>
+        ) : (
+          <div style={{ height: 120, marginTop: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <p style={{ color: "var(--muted)", fontSize: "12px" }}>
+              No application history yet. As you add applications to your pipeline, activity will track here.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1779,6 +1945,11 @@ function SettingsPage() {
       c.locationPreference
     );
   const [modal, setModal] = useState<"none" | "logout" | "delete">("none");
+  useEffect(() => {
+    setName(c.profile.name);
+    setTitle(c.profile.title);
+    setLocationPreference(c.locationPreference);
+  }, [c.profile.name, c.profile.title, c.locationPreference]);
   const suggestedRoles = [
     "Product Designer",
     "UX Researcher",
@@ -1885,16 +2056,6 @@ function SettingsPage() {
         {c.settingsTab === "AI controls" && (
           <>
             <h2>Keep the signal clear.</h2>
-            <label className="settings-checkbox-row">
-              <input
-                type="checkbox"
-                checked={c.aiControls.showSamples}
-                onChange={e =>
-                  c.setAiControls({ showSamples: e.target.checked })
-                }
-              />
-              <span>Show illustrative sample labels</span>
-            </label>
             <label className="settings-checkbox-row">
               <input
                 type="checkbox"
@@ -2058,8 +2219,9 @@ function SettingsPage() {
                     c.resetData();
                     toast.success("Local data deleted");
                   } else {
-                    localStorage.removeItem("jobflow-authenticated");
-                    window.location.href = "/auth";
+                    fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+                      window.location.href = "/auth";
+                    });
                   }
                   setModal("none");
                 }}
@@ -2127,6 +2289,7 @@ function Content({
           {tab === "gaps" && <Gaps />}
           {tab === "match" && <Match setTab={setTab} />}
           {tab === "readiness" && <Readiness setTab={setTab} />}
+          {tab === "profile" && <ProfileStudio setTab={setTab} />}
           {tab === "settings" && <SettingsPage />}
         </motion.div>
       )}
@@ -2145,8 +2308,36 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [notifsOpen, setNotifsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    applicationId: string;
+    type: string;
+    title: string;
+    text: string;
+    stage?: string;
+    date: string;
+    createdAt: string;
+  }>>([]);
+  const [notifsLoading, setNotifsLoading] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const c = useJobflow();
+
+  useEffect(() => {
+    if (notifsOpen) {
+      setNotifsLoading(true);
+      fetch("/api/notifications")
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+          if (Array.isArray(data)) {
+            setNotifications(data);
+          }
+        })
+        .catch(err => console.error("Failed to fetch notifications:", err))
+        .finally(() => setNotifsLoading(false));
+    }
+  }, [notifsOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -2159,6 +2350,18 @@ export default function Home() {
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [notifsOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    if (profileMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileMenuOpen]);
 
   useEffect(() => {
     const next = meta[path] ? path : "dashboard";
@@ -2430,40 +2633,259 @@ export default function Home() {
                 aria-label="Notifications"
               >
                 <Bell size={18} />
-                <i />
+                {notifications.length > 0 && <i />}
               </button>
               {notifsOpen && (
                 <div className="notif-dropdown">
                   <div className="notif-header">
                     <span>Notifications</span>
-                    <Badge className="sample-badge">Illustrative sample</Badge>
                   </div>
                   <div className="notif-list">
-                    <div className="notif-item">
-                      <b>Product Designer application updated</b>
-                      <small>Moved to Interview stage · 10m ago</small>
-                    </div>
-                    <div className="notif-item">
-                      <b>New high match role found</b>
-                      <small>Northstar Labs (84% match) · 2h ago</small>
-                    </div>
-                    <div className="notif-item">
-                      <b>Resume analysis complete</b>
-                      <small>Score updated to 78 (+5 pts) · 1d ago</small>
-                    </div>
+                    {notifsLoading ? (
+                      <div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
+                        Loading notifications…
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <Empty
+                        title="No notifications yet"
+                        copy="Application updates and timeline events will appear here."
+                      />
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className="notif-item">
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" }}>
+                            <b>{n.title}</b>
+                            {n.stage && (
+                              <small className="muted" style={{ fontSize: "10px" }}>
+                                {n.stage}
+                              </small>
+                            )}
+                          </div>
+                          {n.text && <small style={{ display: "block", marginTop: "2px", color: "var(--foreground)" }}>{n.text}</small>}
+                          <small className="muted" style={{ fontSize: "10px", marginTop: "2px" }}>
+                            {new Date(n.date || n.createdAt).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </small>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
             </div>
-            <button
-              className="profile-button"
-              onClick={() => go(setLocation, setTab, "settings")}
-            >
-              <span className="avatar avatar--small">
-                {c.profile.name?.[0] || "Y"}
-              </span>
-              <ChevronDown size={14} />
-            </button>
+            <div className="profile-menu-container" ref={profileMenuRef} style={{ position: "relative" }}>
+              <button
+                className="profile-button"
+                onClick={() => setProfileMenuOpen(x => !x)}
+                aria-label="User profile menu"
+                aria-expanded={profileMenuOpen}
+              >
+                <span className="avatar avatar--small">
+                  {(c.fullProfile?.name || c.profile.name || "U")[0]?.toUpperCase() || "U"}
+                </span>
+                <ChevronDown size={14} />
+              </button>
+              {profileMenuOpen && (
+                <div
+                  className="profile-dropdown-menu"
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: "8px",
+                    width: "240px",
+                    background: "var(--card)",
+                    border: "1px solid var(--rule)",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+                    borderRadius: "6px",
+                    padding: "8px",
+                    zIndex: 60,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "2px",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "8px 10px 10px",
+                      borderBottom: "1px solid var(--rule)",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: "13px", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {c.fullProfile?.name || c.profile.name || "Jobflow Member"}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "2px" }}>
+                      {c.fullProfile?.email || c.profile.email || "member@jobflow.internal"}
+                    </div>
+                  </div>
+
+                  <button
+                    className="profile-dropdown-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "4px",
+                      textAlign: "left",
+                      color: "var(--ink)",
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      go(setLocation, setTab, "profile");
+                    }}
+                  >
+                    <User size={15} />
+                    <span>Profile</span>
+                  </button>
+
+                  <button
+                    className="profile-dropdown-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "4px",
+                      textAlign: "left",
+                      color: "var(--ink)",
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      go(setLocation, setTab, "profile");
+                    }}
+                  >
+                    <Sliders size={15} />
+                    <span>Job Preferences</span>
+                  </button>
+
+                  <button
+                    className="profile-dropdown-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "4px",
+                      textAlign: "left",
+                      color: "var(--ink)",
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      go(setLocation, setTab, "resume");
+                    }}
+                  >
+                    <FileText size={15} />
+                    <span>Resume</span>
+                  </button>
+
+                  <button
+                    className="profile-dropdown-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "4px",
+                      textAlign: "left",
+                      color: "var(--ink)",
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      go(setLocation, setTab, "applications");
+                    }}
+                  >
+                    <Layers3 size={15} />
+                    <span>Applications</span>
+                  </button>
+
+                  <button
+                    className="profile-dropdown-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "4px",
+                      textAlign: "left",
+                      color: "var(--ink)",
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      go(setLocation, setTab, "settings");
+                    }}
+                  >
+                    <Settings size={15} />
+                    <span>Settings</span>
+                  </button>
+
+                  <div style={{ height: "1px", background: "var(--rule)", margin: "4px 0" }} />
+
+                  <button
+                    className="profile-dropdown-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "4px",
+                      textAlign: "left",
+                      color: "#b91c1c",
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+                        window.location.href = "/auth";
+                      });
+                    }}
+                  >
+                    <LockKeyhole size={15} />
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <div className="content">

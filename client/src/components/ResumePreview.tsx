@@ -51,7 +51,7 @@ export function ResumePreview({ resume }: { resume: ResumeVersion }) {
           <div style={{ marginBottom: "20px" }}>
             <h3 style={{ borderBottom: "1px solid #ddd", textTransform: "uppercase", fontSize: "12px", paddingBottom: "4px", marginBottom: "10px" }}>Experience</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-              {content.workHistory.map(exp => (
+              {content.workHistory.map((exp: any) => (
                 <div key={exp.id}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" }}>
                     <b style={{ fontSize: "14px" }}>{exp.company}</b>
@@ -62,7 +62,7 @@ export function ResumePreview({ resume }: { resume: ResumeVersion }) {
                     <span style={{ fontSize: "12px", color: "#666" }}>{exp.location}</span>
                   </div>
                   <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", lineHeight: "1.5", color: "#333" }}>
-                    {exp.bullets.map((b, i) => <li style={{ marginBottom: "4px" }} key={i}>{b}</li>)}
+                    {exp.bullets.map((b: any, i: number) => <li style={{ marginBottom: "4px" }} key={i}>{b}</li>)}
                   </ul>
                 </div>
               ))}
@@ -74,7 +74,7 @@ export function ResumePreview({ resume }: { resume: ResumeVersion }) {
         {content.education.length > 0 && (
           <div style={{ marginBottom: "20px" }}>
             <h3 style={{ borderBottom: "1px solid #ddd", textTransform: "uppercase", fontSize: "12px", paddingBottom: "4px", marginBottom: "10px" }}>Education</h3>
-            {content.education.map(edu => (
+            {content.education.map((edu: any) => (
               <div key={edu.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                 <div>
                   <b style={{ fontSize: "13px", display: "block" }}>{edu.school}</b>
@@ -99,7 +99,7 @@ export function ResumePreview({ resume }: { resume: ResumeVersion }) {
           <div style={{ marginBottom: "20px" }}>
             <h3 style={{ borderBottom: "1px solid #ddd", textTransform: "uppercase", fontSize: "12px", paddingBottom: "4px", marginBottom: "10px" }}>Projects</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-              {content.projects.map(proj => (
+              {content.projects.map((proj: any) => (
                 <div key={proj.id}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" }}>
                     <b style={{ fontSize: "14px" }}>{proj.name}</b>
@@ -110,7 +110,7 @@ export function ResumePreview({ resume }: { resume: ResumeVersion }) {
                   )}
                   {proj.bullets.length > 0 && (
                     <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", lineHeight: "1.5", color: "#333" }}>
-                      {proj.bullets.map((b, i) => <li style={{ marginBottom: "4px" }} key={i}>{b}</li>)}
+                      {proj.bullets.map((b: any, i: number) => <li style={{ marginBottom: "4px" }} key={i}>{b}</li>)}
                     </ul>
                   )}
                 </div>

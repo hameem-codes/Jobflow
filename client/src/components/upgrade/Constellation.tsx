@@ -52,7 +52,13 @@ export function Constellation({
         ))}
       </svg>
       {skills.map((s, i) => {
-        const cls = `node${s.has ? " has" : ""}${s.gap ? " gap" : ""}`;
+        const len = s.label.length;
+        const isLong = len > 13 && len <= 19;
+        const isVeryLong = len > 19;
+
+        const sizeClass = isVeryLong ? " node--tiny" : isLong ? " node--small" : "";
+        const cls = `node${s.has ? " has" : ""}${s.gap ? " gap" : ""}${sizeClass}`;
+
         return (
           <span
             key={s.label}
@@ -64,7 +70,7 @@ export function Constellation({
             }}
             title={s.label}
           >
-            {s.label.split(" ").slice(0, 2).join(" ")}
+            <span className="node-label">{s.label}</span>
           </span>
         );
       })}

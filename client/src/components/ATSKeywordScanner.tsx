@@ -19,8 +19,8 @@ export function ATSKeywordScanner({ resumeId }: { resumeId: string }) {
     const content = resume.content;
     const allResumeText = [
       content?.summary || "",
-      ...(content?.workHistory.map(w => w.company + " " + w.role + " " + w.bullets.join(" ")) || []),
-      ...(content?.education.map(e => e.field + " " + e.degree) || []),
+      ...(content?.workHistory.map((w: any) => w.company + " " + w.role + " " + w.bullets.join(" ")) || []),
+      ...(content?.education.map((e: any) => e.field + " " + e.degree) || []),
       ...(content?.skills || []),
       resume.text
     ].join(" ").toLowerCase();

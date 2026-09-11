@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "target_role" varchar(255);

@@ -1,8 +1,29 @@
 {
-  "buildCommand": "vite build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "framework": "vite",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/healthz",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/readyz",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/schedule",
+      "schedule": "0 8 * * *"
+    }
   ]
 }

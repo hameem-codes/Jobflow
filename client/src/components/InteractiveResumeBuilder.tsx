@@ -62,8 +62,8 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
   const handleExperienceReorder = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = content.workHistory.findIndex(w => w.id === active.id);
-      const newIndex = content.workHistory.findIndex(w => w.id === over.id);
+      const oldIndex = content.workHistory.findIndex((w: any) => w.id === active.id);
+      const newIndex = content.workHistory.findIndex((w: any) => w.id === over.id);
       update({ workHistory: arrayMove(content.workHistory, oldIndex, newIndex) });
     }
   };
@@ -72,8 +72,8 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
   const handleEducationReorder = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = content.education.findIndex(e => e.id === active.id);
-      const newIndex = content.education.findIndex(e => e.id === over.id);
+      const oldIndex = content.education.findIndex((e: any) => e.id === active.id);
+      const newIndex = content.education.findIndex((e: any) => e.id === over.id);
       update({ education: arrayMove(content.education, oldIndex, newIndex) });
     }
   };
@@ -82,15 +82,15 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
   const handleProjectsReorder = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = content.projects.findIndex(p => p.id === active.id);
-      const newIndex = content.projects.findIndex(p => p.id === over.id);
+      const oldIndex = content.projects.findIndex((p: any) => p.id === active.id);
+      const newIndex = content.projects.findIndex((p: any) => p.id === over.id);
       update({ projects: arrayMove(content.projects, oldIndex, newIndex) });
     }
   };
 
   const updateExperience = (id: string, field: string, value: any) => {
     update({
-      workHistory: content.workHistory.map(w => w.id === id ? { ...w, [field]: value } : w)
+      workHistory: content.workHistory.map((w: any) => w.id === id ? { ...w, [field]: value } : w)
     });
   };
 
@@ -102,7 +102,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
   const deleteExperience = (id: string) => {
     update({
-      workHistory: content.workHistory.filter(w => w.id !== id)
+      workHistory: content.workHistory.filter((w: any) => w.id !== id)
     });
   };
 
@@ -117,7 +117,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
   const updateEducation = (id: string, field: string, value: any) => {
     update({
-      education: content.education.map(e => e.id === id ? { ...e, [field]: value } : e)
+      education: content.education.map((e: any) => e.id === id ? { ...e, [field]: value } : e)
     });
   };
 
@@ -129,7 +129,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
   const deleteEducation = (id: string) => {
     update({
-      education: content.education.filter(e => e.id !== id)
+      education: content.education.filter((e: any) => e.id !== id)
     });
   };
 
@@ -144,7 +144,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
   const updateProject = (id: string, field: string, value: any) => {
     update({
-      projects: content.projects.map(p => p.id === id ? { ...p, [field]: value } : p)
+      projects: content.projects.map((p: any) => p.id === id ? { ...p, [field]: value } : p)
     });
   };
 
@@ -156,13 +156,13 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
   const deleteProject = (id: string) => {
     update({
-      projects: content.projects.filter(p => p.id !== id)
+      projects: content.projects.filter((p: any) => p.id !== id)
     });
   };
 
   const updateProjectBullet = (projId: string, bulletIndex: number, val: string) => {
     update({
-      projects: content.projects.map(p => {
+      projects: content.projects.map((p: any) => {
         if (p.id !== projId) return p;
         const newBullets = [...p.bullets];
         newBullets[bulletIndex] = val;
@@ -173,15 +173,15 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
   const addProjectBullet = (projId: string) => {
     update({
-      projects: content.projects.map(p => p.id === projId ? { ...p, bullets: [...p.bullets, ""] } : p)
+      projects: content.projects.map((p: any) => p.id === projId ? { ...p, bullets: [...p.bullets, ""] } : p)
     });
   };
 
   const deleteProjectBullet = (projId: string, bulletIndex: number) => {
     update({
-      projects: content.projects.map(p => {
+      projects: content.projects.map((p: any) => {
         if (p.id !== projId) return p;
-        const newBullets = p.bullets.filter((_, i) => i !== bulletIndex);
+        const newBullets = p.bullets.filter((_: any, i: number) => i !== bulletIndex);
         return { ...p, bullets: newBullets };
       })
     });
@@ -189,7 +189,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
   const updateBullet = (expId: string, bulletIndex: number, val: string) => {
     update({
-      workHistory: content.workHistory.map(w => {
+      workHistory: content.workHistory.map((w: any) => {
         if (w.id !== expId) return w;
         const newBullets = [...w.bullets];
         newBullets[bulletIndex] = val;
@@ -200,15 +200,15 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
   const addBullet = (expId: string) => {
     update({
-      workHistory: content.workHistory.map(w => w.id === expId ? { ...w, bullets: [...w.bullets, ""] } : w)
+      workHistory: content.workHistory.map((w: any) => w.id === expId ? { ...w, bullets: [...w.bullets, ""] } : w)
     });
   };
 
   const deleteBullet = (expId: string, bulletIndex: number) => {
     update({
-      workHistory: content.workHistory.map(w => {
+      workHistory: content.workHistory.map((w: any) => {
         if (w.id !== expId) return w;
-        const newBullets = w.bullets.filter((_, i) => i !== bulletIndex);
+        const newBullets = w.bullets.filter((_: any, i: number) => i !== bulletIndex);
         return { ...w, bullets: newBullets };
       })
     });
@@ -263,9 +263,9 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
             </div>
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleExperienceReorder}>
-              <SortableContext items={content.workHistory.map(w => w.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={content.workHistory.map((w: any) => w.id)} strategy={verticalListSortingStrategy}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                  {content.workHistory.map((exp) => (
+                  {content.workHistory.map((exp: any) => (
                     <DraggableItem key={exp.id} id={exp.id}>
                       <div style={{ border: "1px solid var(--rule)", padding: "15px", borderRadius: "8px", position: "relative" }}>
                         <div style={{ position: "absolute", right: "15px", top: "15px", display: "flex", gap: "5px" }}>
@@ -281,7 +281,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
                         <div>
                           <label style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>Bullets <button className="text-link" onClick={() => addBullet(exp.id)}><Plus size={12}/> Add</button></label>
-                          {exp.bullets.map((b, bIndex) => (
+                          {exp.bullets.map((b: any, bIndex: number) => (
                             <div key={bIndex} style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "flex-start" }}>
                               <textarea
                                 value={b}
@@ -312,9 +312,9 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
             </div>
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleEducationReorder}>
-              <SortableContext items={content.education.map(e => e.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={content.education.map((e: any) => e.id)} strategy={verticalListSortingStrategy}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                  {content.education.map((edu) => (
+                  {content.education.map((edu: any) => (
                     <DraggableItem key={edu.id} id={edu.id}>
                       <div style={{ border: "1px solid var(--rule)", padding: "15px", borderRadius: "8px", position: "relative" }}>
                         <div style={{ position: "absolute", right: "15px", top: "15px", display: "flex", gap: "5px" }}>
@@ -356,9 +356,9 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
             </div>
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjectsReorder}>
-              <SortableContext items={content.projects.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={content.projects.map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                  {content.projects.map((proj) => (
+                  {content.projects.map((proj: any) => (
                     <DraggableItem key={proj.id} id={proj.id}>
                       <div style={{ border: "1px solid var(--rule)", padding: "15px", borderRadius: "8px", position: "relative" }}>
                         <div style={{ position: "absolute", right: "15px", top: "15px", display: "flex", gap: "5px" }}>
@@ -373,7 +373,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
 
                         <div>
                           <label style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>Details <button className="text-link" onClick={() => addProjectBullet(proj.id)}><Plus size={12}/> Add</button></label>
-                          {proj.bullets.map((b, bIndex) => (
+                          {proj.bullets.map((b: any, bIndex: number) => (
                             <div key={bIndex} style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "flex-start" }}>
                               <textarea
                                 value={b}
@@ -406,7 +406,7 @@ export function InteractiveResumeBuilder({ resume, onClose }: { resume: ResumeVe
         <AIBulletEnhancer 
           expId={editingBullet.expId} 
           bulletIndex={editingBullet.bulletIndex} 
-          currentText={content.workHistory.find(w => w.id === editingBullet.expId)?.bullets[editingBullet.bulletIndex] || ""}
+          currentText={content.workHistory.find((w: any) => w.id === editingBullet.expId)?.bullets[editingBullet.bulletIndex] || ""}
           onSave={(text) => { updateBullet(editingBullet.expId, editingBullet.bulletIndex, text); setEditingBullet(null); }}
           onClose={() => setEditingBullet(null)} 
         />
